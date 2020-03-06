@@ -82,6 +82,11 @@ parser.add_argument("--ineq", action="store_true", help="Give this argument to u
                                                         "components must be LESS THAN OR EQUAL to 1). If not specified,"
                                                         " equality constraint of 1 is used (sum of components must be "
                                                         "EQUAL to 1).")
+parser.add_argument("--conversion_correction", action="store_true", help="Give this argument to attempt "
+                                                                         "automatic correction for experimental "
+                                                                         "over- or underconversion during the "
+                                                                         "deconvolution calculations. Most useful "
+                                                                         "without the --ineq option.")
 
 args = parser.parse_args()
 
@@ -133,6 +138,14 @@ if not check_integrity(ref, samples):
     exit(1)
 if args.verbose: print("done!\n")
 
+# ADD ARTIFICIAL REFERENCES FOR OVER- UNDERCONVERSION CORRECTION
+if args.conversion_correction:
+    ref_organs.append("Underconversion_correction")
+    ref_organs.append("Overconversion_correction")
+    ref_num += 2
+
+    ref = [x + ["1.0"] + ["0.0"] for x in ref]
+
 # DETECT REGIONS WITH UNKNOWN METHYLATION IN REFERENCE AND REMOVE THESE REGIONS ALSO FROM SAMPLE DATA
 nans = [idx for idx, row in enumerate(ref) if "nan" in "_".join(row).lower()]
 nans = sorted(nans, reverse=True)
@@ -169,7 +182,7 @@ print("\n\n")
 for result in deconv_results:
     print("\t".join([str(x) for x in result]))
 
-if sample_num > 1:
+if sample_num > 1 and min(n_loci) != max(n_loci):
     loci_string = "between {0} and {1}".format(min(n_loci), max(n_loci))
 else:
     loci_string = str(n_loci[0])
